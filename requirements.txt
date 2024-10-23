@@ -1,0 +1,12 @@
+cvxpy==1.4.1
+jax==0.4.33
+matplotlib==3.6.3
+neural_tangents==0.6.5
+numpy==1.26.2
+pandas==2.2.0
+scikit_learn==1.4.0
+scipy==1.11.4
+setuptools==75.1.0
+torch==2.4.0
+tueplots==0.0.13
+Mosek==10.2.5
