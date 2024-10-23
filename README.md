@@ -2,24 +2,21 @@
 SDP Relaxations for Training ReLU Activation Infinite-Width Neural Networks 
 
 ## Installation
-To install the prerequisite Python modules, run the following:
-
+To install the prerequisite Python modules, run the following:\
 <code>
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 </code>
 
-The following command installs the SDPNN code (replace the paths as needed):
-
+The following command installs the SDPNN code (replace the paths as needed):\
 <code>
 python3 setup.py develop -s venv/bin -d venv/lib/python3.11/site-packages
 </code>
 
 ## Running the Experiments
 
-To run the experiments for the paper, run the following command
-
+To run the experiments for the paper, run the following command:\
 <code>
     sh run_experiments.sh
 </code>
