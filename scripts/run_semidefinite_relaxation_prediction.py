@@ -48,8 +48,8 @@ def create_neural_network_stax(c):
     @return: the kernel function
     """
     init_fn, apply_fn, kernel_fn = stax.serial(
-        stax.Dense(1000, W_std=1, b_std=0.05), stax.Relu(),
-        stax.Dense(c, W_std=1, b_std=0.05)
+        stax.Dense(1000, W_std=1, b_std=None), stax.Relu(),
+        stax.Dense(c, W_std=1, b_std=None)
     )
     kernel_fn = jit(kernel_fn, static_argnames='get')
 
