@@ -218,7 +218,7 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                         bbox_inches="tight", pad_inches=0)
 
 
-def run_experiment(experiment, run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
+def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                    deg_cp_relaxation, size_of_randomized_dataset, num_trials_randomized_exp, cvx_solver_type,
                    results_dir, device, num_workers):
     """
@@ -228,6 +228,8 @@ def run_experiment(experiment, run_type, regularization_parameter, sgd_learning_
     @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere")
     @type run_type: str
     @param run_type: The type of run to do (e.g. "SGD" or "CVX")
+    @type add_bias: str
+    @param add_bias: whether or not to add bias term to the first layer
     @type regularization_parameter: float
     @param: regularization_parameter: the regularization parameter for NN training.
     @type sgd_learning_rate: float
@@ -267,16 +269,16 @@ def run_experiment(experiment, run_type, regularization_parameter, sgd_learning_
         results = run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                              deg_cp_relaxation, cvx_solver_type, device, num_workers)
     elif experiment == 'iris':
-        results = run_iris_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
+        results = run_iris_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                            deg_cp_relaxation, cvx_solver_type, device, num_workers)
     elif experiment == 'ionosphere':
-        results = run_ionosphere_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
+        results = run_ionosphere_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                                  deg_cp_relaxation, cvx_solver_type, device, num_workers)
     elif experiment == 'pima_indians':
-        results = run_pima_indians_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
+        results = run_pima_indians_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                            deg_cp_relaxation, cvx_solver_type, device, num_workers)
     elif experiment == 'bank_notes':
-        results = run_bank_notes_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
+        results = run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                                  deg_cp_relaxation, cvx_solver_type, device, num_workers)
 
     else:
@@ -308,6 +310,8 @@ if __name__ == '__main__':
     parser.add_argument('--run_type', action='store', default='CVX', type=str,
                         choices=['SGD', 'CVX'],
                         help='The type of run to do (e.g. "SGD" or "CVX")')
+    parser.add_argument('--add_bias', action='store_true', default=False,
+                        help='Flag whether to use bias in first layer for real-life datasets.')
     parser.add_argument('--plot_results', action='store_true', default=False,
                         help='Flag whether to plot the results or not.')
     parser.add_argument('--results_dir', action='store', default='results',
@@ -337,7 +341,7 @@ if __name__ == '__main__':
 
     # If the user wants to run the baselines, run them or if they have not been run, run them and store them.
     if args.run_experiment:
-        baselines = run_experiment(args.experiment, args.run_type, args.regularization_parameter, args.sgd_learning_rate,
+        baselines = run_experiment(args.experiment, args.run_type, args.add_bias, args.regularization_parameter, args.sgd_learning_rate,
                                    args.sgd_num_epochs, args.deg_cp_relaxation,
                                    args.size_of_randomized_dataset, args.num_trials_randomized_exp,
                                    args.cvx_solver_type, args.results_dir, args.device, args.num_workers)

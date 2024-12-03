@@ -1,4 +1,5 @@
 import os
+import copy
 import torch
 import random
 import itertools
@@ -50,7 +51,7 @@ def run_cvx(cvx_trial_permutation):
             'cvx_solver_type': solver, 'obj_type': obj_type}
 
 
-def run_iris_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-6, sgd_num_epochs=2000000,
+def run_iris_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate=1e-6, sgd_num_epochs=2000000,
                              deg_cp_relaxation=0, cvx_solver_type='SCS', device='cpu', num_workers=None):
     """
     The run_iris_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
@@ -61,6 +62,8 @@ def run_iris_data_experiment(run_type, regularization_parameter, sgd_learning_ra
 
     @type run_type: str
     @param run_type: the type of run to do (e.g. "SGD" or "CVX")
+    @type add_bias: str
+    @param add_bias: whether or not to add bias term to the first layer
     @type regularization_parameter: float
     @param: regularization_parameter: the regularization parameter for NN training
     @type sgd_learning_rate: float
@@ -123,6 +126,19 @@ def run_iris_data_experiment(run_type, regularization_parameter, sgd_learning_ra
     dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
     dataset_path = os.path.join('data', 'iris.pkl')
 
+    # Add the bias term
+    if add_bias:
+        old_dataset = copy.deepcopy(dataset)
+        num_rows_train = dataset['train_dataset']['X'].shape[0]
+        ones_column_train = np.ones((num_rows_train, 1)) 
+        X_train = np.hstack((ones_column_train, old_dataset['train_dataset']['X']))
+        num_rows_test = dataset['test_dataset']['X'].shape[0]
+        ones_column_test = np.ones((num_rows_test, 1)) 
+        X_test = np.hstack((ones_column_test, old_dataset['test_dataset']['X']))
+        train_dataset = {'X': X_train, 'Y': old_dataset['train_dataset']['Y']}
+        test_dataset = {'X': X_test, 'Y': old_dataset['test_dataset']['Y']}
+        dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
+    
     # Save the train and test datasets
     with open(dataset_path, 'wb') as handle:
         pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
