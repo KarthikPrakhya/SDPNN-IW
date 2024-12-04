@@ -126,6 +126,10 @@ def run_pima_indians_data_experiment(run_type, add_bias, regularization_paramete
     dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
     dataset_path = os.path.join('data', 'pima_indians.pkl')
 
+    # Save the train and test datasets
+    with open(dataset_path, 'wb') as handle:
+        pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
+    
     # Add the bias term
     if add_bias:
         old_dataset = copy.deepcopy(dataset)
@@ -138,10 +142,6 @@ def run_pima_indians_data_experiment(run_type, add_bias, regularization_paramete
         train_dataset = {'X': X_train, 'Y': old_dataset['train_dataset']['Y']}
         test_dataset = {'X': X_test, 'Y': old_dataset['test_dataset']['Y']}
         dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
-
-    # Save the train and test datasets
-    with open(dataset_path, 'wb') as handle:
-        pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
     # Generate the SGD solution for the Pima Indians dataset
     if run_type == 'SGD':

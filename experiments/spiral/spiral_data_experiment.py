@@ -1,7 +1,7 @@
 import os
 import pickle
 import torch
-import random 
+import random
 import itertools
 import numpy as np
 import concurrent.futures
@@ -9,6 +9,9 @@ from utils.data.label_encoding import one_hot
 from utils.data.datagen_spiral import datagen_spiral
 from algorithms.cvx.cvx_solver import cvx_solver
 from algorithms.sgd.sgd_solver_pytorch import sgd_solver_pytorch
+from algorithms.sahiner.sign_patterns import generate_sign_patterns
+from algorithms.sahiner.train_sahiner_frank_wolfe_nn import train_sahiner_frank_wolfe_nn
+from algorithms.sahiner.train_sahiner_copositive_relaxation_nn import train_sahiner_copositive_relaxation_nn
 
 
 def run_sgd(sgd_run_permutation):
@@ -50,12 +53,49 @@ def run_cvx(cvx_trial_permutation):
             'cvx_solver_type': solver, 'obj_type': obj_type}
 
 
+def run_sahiner(sahiner_trial_permutation):
+    dataset = sahiner_trial_permutation[0]
+    beta = sahiner_trial_permutation[1]
+    fw_epochs = sahiner_trial_permutation[2]
+    obj_type = sahiner_trial_permutation[3]
+    model = sahiner_trial_permutation[4]
+
+    # Determine the number of sign patterns
+    sign_pattern_list, u_vector_list = generate_sign_patterns(dataset['X'], 100000, verbose=True)
+    sign_patterns = np.array(sign_pattern_list).astype(np.int32)
+
+    # Run the copositive relaxtion of Sahiner et al.
+    loss_sahiner_copositive, time_sahiner_copositive = train_sahiner_copositive_relaxation_nn(dataset['X'],
+                                                                                              dataset['Y'],
+                                                                                              np.expand_dims(
+                                                                                                  sign_patterns, 2),
+                                                                                              beta, eps=1e-2)
+
+    # Run the FW algorithm of Sahiner et al.
+    t = 0
+    for layer, p in enumerate(model.parameters()):
+        t += torch.norm(p) ** 2 / 2
+    t = t.cpu().item()
+    losses_sahiner_fw, times_sahiner_fw = train_sahiner_frank_wolfe_nn(dataset['X'], dataset['Y'],
+                                                                       np.expand_dims(sign_patterns, 2),
+                                                                       beta, t, epochs=fw_epochs,
+                                                                       return_times=True)
+
+    return [{'Algorithm': 'Sahiner FW', 'sahiner_fw_losses': losses_sahiner_fw,
+             'sahiner_fw_time': times_sahiner_fw[-1] - times_sahiner_fw[0],
+             'obj_type': obj_type},
+            {'Algorithm': 'Sahiner Copositive Rel.', 'sahiner_copositive_loss': loss_sahiner_copositive,
+             'sahiner_copositive_time': time_sahiner_copositive, 'obj_type': obj_type}]
+
+
 def run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-3, sgd_num_epochs=8000,
-                               deg_cp_relaxation=0, cvx_solver_type='MOSEK', device='cpu', num_workers=None):
+                               deg_cp_relaxation=0, fw_epochs=15000, sgd_results_file_path=None, cvx_solver_type='MOSEK',
+                               device='cpu', num_workers=None):
     """
     The run_spiral_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
     formulation of the infinite-width neural network (NN) training problem for the spiral dataset. As baseline approaches,
-    it runs the SGD solution of the same training problem.
+    it runs the SGD solution of the same training problem. As a baseline, it runs Sahiner's FW algorithm that solves
+    the convex semi-infinite dual formulation as well as Sahiner's copositive relaxation (see paper for more details).
 
     @type run_type: str
     @param run_type: the type of run ('SGD' or 'CVX')
@@ -65,6 +105,12 @@ def run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_
     @param sgd_learning_rate: the SGD learning rate.
     @type sgd_num_epochs: int
     @param sgd_num_epochs: the number of epochs to run SGD for.
+    @param deg_cp_relaxation: the degree of SoS relaxation for completely positive program.
+    @type size_of_randomized_dataset: int
+    @type fw_epochs: int
+    @param fw_epochs: the number of epochs to run Sahiner's FW algorithm.
+    @type sgd_results_file_path: str
+    @param sgd_results_file_path: the location of the SGD result file for initializing Sahiner's FW algorithm.
     @type cvx_solver_type: str
     @param cvx_solver_type: the CVXPY solver to use ("MOSEK or "SCS") for degree 0 relaxation (SCS will be used for higher-order relaxations)
     @type device: str
@@ -122,21 +168,50 @@ def run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_
         num_workers_sgd_cases = num_workers if num_workers else len(num_hidden_neurons)
         runs = range(0, num_sgd_runs)
         sgd_trial_permutations = itertools.product([dataset], runs, num_hidden_neurons, [beta], [batch_size],
-                                               [learning_rate], [device], [num_sgd_epochs], obj_types)
+                                                   [learning_rate], [device], [num_sgd_epochs], obj_types)
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers_sgd_cases) as executor:
             sgd_results = list(executor.map(run_sgd, sgd_trial_permutations))
-    
+
         baselines = {'sgd_results': sgd_results, 'num_sgd_epochs': num_sgd_epochs}
 
     # Generate CVX solution for the Spiral dataset
     if run_type == 'CVX':
         cvx_trial_permutations = itertools.product([dataset], deg_cp_relaxation, [beta],
-                                               [cvx_solver_type], obj_types)
+                                                   [cvx_solver_type], obj_types)
         cvx_results = []
         for cvx_trial_permutation in cvx_trial_permutations:
             result = run_cvx(cvx_trial_permutation)
             cvx_results.append(result)
-    
+
         baselines = {'cvx_results': cvx_results}
+
+    # Generate the Sahiner solution for the Spiral dataset
+    if run_type == 'Sahiner':
+        sahiner_results = []
+        if sgd_results_file_path:
+            with open(sgd_results_file_path, 'rb') as f:
+                sgd_results = pickle.load(f)
+
+            first_models = {}
+            for entry in sgd_results['sgd_results']:
+                run_number = entry['run_number']
+                m = entry['m']
+                if run_number == 1 and m == 300:
+                    model = entry['sgd_model']
+            models = [model]
+        else:
+            models = []
+            sgd_learning_rate = 1e-2
+            num_sgd_epochs = 8000
+            for obj_type in obj_types:
+                _, _, model = sgd_solver_pytorch(dataset['X'], dataset['Y'], 1000, beta, num_sgd_epochs,
+                                                               batch_size, sgd_learning_rate, obj_type, device)
+                models.append(model)
+        sahiner_trial_permutations = itertools.product([dataset], [beta], [fw_epochs], obj_types, models)
+        for sahiner_trial_permutation in sahiner_trial_permutations:
+            result = run_sahiner(sahiner_trial_permutation)
+            sahiner_results += result
+
+        baselines = {'sahiner_results': sahiner_results}
 
     return baselines

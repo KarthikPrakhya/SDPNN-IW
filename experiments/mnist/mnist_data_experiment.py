@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 import pickle as pkl
 import concurrent.futures
+from utils.data.label_encoding import one_hot
 from algorithms.cvx.cvx_solver import cvx_solver
 from algorithms.sgd.sgd_solver_pytorch import sgd_solver_pytorch
-from sklearn.model_selection import train_test_split
 
 
 def run_sgd(sgd_run_permutation):
@@ -45,20 +45,20 @@ def run_cvx(cvx_trial_permutation):
     if deg == 2:
         solver = 'SCS'
 
-    cvx_soln, cvx_obj, cvx_time = cvx_solver(dataset['X'], dataset['Y'], beta, verbose=True, solver=solver, 
+    cvx_soln, cvx_obj, cvx_time = cvx_solver(dataset['X'], dataset['Y'], beta, verbose=True, solver=solver,
                                              obj_type=obj_type, degree_cp_relaxation=deg)
     return {'deg_cp_relaxation': deg, 'cvx_soln': cvx_soln, 'cvx_obj': cvx_obj, 'cvx_time': cvx_time,
             'cvx_solver_type': solver, 'obj_type': obj_type}
 
 
-def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate=1e-6, sgd_num_epochs=2000000,
+def run_mnist_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate=1e-7, sgd_num_epochs=8000000,
                              deg_cp_relaxation=0, cvx_solver_type='SCS', device='cpu', num_workers=None):
     """
-    The run_bank_notes_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
-    formulation of the infinite-width neural network (NN) training problem for the Bank Notes Authentication UCI dataset.
-    As baseline approaches, it runs the SGD solution of the same training problem.
+    The run_mnist_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
+    formulation of the infinite-width neural network (NN) training problem for the downsampled MNIST dataset. As baseline approaches,
+    it runs the SGD solution of the same training problem.
 
-    Volker Lohweg. Banknote Authentication. UCI Machine Learning Repository, 2012. DOI: https://doi.org/10.24432/C55P57.
+    LeCun, Y., Cortes, C. and Burges, C.J.C. (1998) The MNIST Database of Handwritten Digits.
 
     @type run_type: str
     @param run_type: the type of run to do (e.g. "SGD" or "CVX")
@@ -95,39 +95,49 @@ def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter,
             'cvx_time': the corresponding time for CVXPY solver (MOSEK for degree 0 and SCS for degree 1 or above) to compute solution
 
     """
-    # Size parameters for the Bank Notes dataset
-    num_hidden_neurons = [300]  # number of hidden neuronss
-    d = 4  # input dimension
-    c = 1  # output dimension
-    n = 685  # number of datapoints
+    # Size parameters for the Iris dataset
+    num_hidden_neurons = [300]  # number of hidden neurons
+    d = 20  # input dimension
+    c = 10  # output dimension
+    n = 1000  # number of datapoints
 
     # Parameters for NN training
     beta = regularization_parameter
     batch_size = n
     learning_rate = sgd_learning_rate
     num_sgd_epochs = sgd_num_epochs
-    num_sgd_runs = 1
+    num_sgd_runs = 5
 
     # General parameters
     obj_types = ['L2']
 
     # Load our csv into a dataframe with column names
-    df = pd.read_csv(os.path.join('data', 'data_banknote_authentication.txt'))
+    df_train = pd.read_csv(os.path.join('data', 'mnist_train_downsampled_pca.csv'),
+                     names=['PC1','PC2','PC3','PC4','PC5','PC6','PC7','PC8','PC9','PC10','PC11','PC12','PC13','PC14','PC15','PC16','PC17','PC18','PC19','PC20', 'labels'],
+                     header=None)
+    df_test = pd.read_csv(os.path.join('data', 'mnist_test_downsampled_pca.csv'),
+                     names=['PC1','PC2','PC3','PC4','PC5','PC6','PC7','PC8','PC9','PC10','PC11','PC12','PC13','PC14','PC15','PC16','PC17','PC18','PC19','PC20', 'labels'],
+                     header=None)
+
     # extract the last column as the labels
-    X = df[df.columns[:-1]].to_numpy(dtype=float)
-    labels = df[df.columns[-1]]
-    labels = pd.get_dummies(labels)
-    Y = 1 * labels.values
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
+    labels_train = df_train.pop('labels')
+    labels_train = pd.get_dummies(labels_train[1:,])
+    X_train = df_train.iloc[1:,].to_numpy(dtype=float)
+    Y_train = labels_train.values
+    labels_test = df_test.pop('labels')
+    labels_test = pd.get_dummies(labels_test[1:,])
+    X_test = df_test.iloc[1:,].to_numpy(dtype=float)
+    Y_test = labels_test.values
+    X_train = (X_train - X_train.mean()) / (X_train.std())
+    X_test = (X_test - X_train.mean()) / (X_test.std())
     train_dataset = {'X': X_train, 'Y': Y_train}
     test_dataset = {'X': X_test, 'Y': Y_test}
     dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
-    dataset_path = os.path.join('data', 'bank_notes.pkl')
-    
+
     # Save the train and test datasets
     with open(dataset_path, 'wb') as handle:
         pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
-    
+
     # Add the bias term
     if add_bias:
         old_dataset = copy.deepcopy(dataset)
@@ -141,7 +151,7 @@ def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter,
         test_dataset = {'X': X_test, 'Y': old_dataset['test_dataset']['Y']}
         dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
 
-    # Generate the SGD solution for the Bank Notes dataset
+    # Generate the SGD solution for the MNIST dataset
     if run_type == 'SGD':
         num_workers_sgd_cases = num_workers if num_workers else len(num_hidden_neurons)
         runs = range(0, num_sgd_runs)
@@ -149,10 +159,10 @@ def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter,
                                                    [learning_rate], [device], [num_sgd_epochs], obj_types)
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers_sgd_cases) as executor:
             sgd_results = list(executor.map(run_sgd, sgd_trial_permutations))
-        
+
         baselines = {'sgd_results': sgd_results, 'num_sgd_epochs': num_sgd_epochs}
 
-    # Generate CVX solution for the Bank Notes dataset
+    # Generate CVX solution for the MNIST dataset
     if run_type == 'CVX':
         cvx_trial_permutations = itertools.product([train_dataset], deg_cp_relaxation, [beta],
                                                    [cvx_solver_type], obj_types)
@@ -160,7 +170,7 @@ def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter,
         for cvx_trial_permutation in cvx_trial_permutations:
             result = run_cvx(cvx_trial_permutation)
             cvx_results.append(result)
-        
+
         baselines = {'cvx_results': cvx_results}
 
     return baselines

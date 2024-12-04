@@ -14,6 +14,7 @@ from experiments.iris.iris_data_experiment import run_iris_data_experiment
 from experiments.ionosphere.ionosphere_data_experiment import run_ionosphere_data_experiment
 from experiments.bank_notes.bank_notes_data_experiment import run_bank_notes_data_experiment
 from experiments.pima_indians.pima_indians_data_experiment import run_pima_indians_data_experiment
+from experiments.mnist.mnist_data_experiment import run_mnist_data_experiment
 
 np.random.seed(100)
 torch.manual_seed(100)
@@ -27,7 +28,7 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
     approaches. It also generates a CSV file with all the final loss values and solution times for various approaches.
 
     @type experiment: str
-    @param experiment: the experiment to run ("randomized", "spiral", "iris" or "ionosphere")
+    @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere", "pima_indians", "bank_notes")
     @type: str
     @param results_dir: the directory where the figures and csv files holding the results will be put.
     @type: dict
@@ -117,6 +118,40 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
             cvx_trials = cvx_trials.round(3)
             cvx_trials.to_csv(csv_result_file_name, index=False)
 
+    if 'sahiner_results' in baselines.keys() or 'sahiner_trials' in baselines.keys():
+        sahiner_result_file_name = os.path.join(results_dir, experiment + "_sahiner_losses.csv")
+        key = 'sahiner_results' if 'sahiner_results' in baselines.keys() else 'sahiner_trials'
+        sahiner_fw_baselines = [item for item in baselines[key] if item.get('Algorithm') == 'Sahiner FW']
+        sahiner_cp_baselines = [item for item in baselines[key] if item.get('Algorithm') == 'Sahiner Copositive Rel.']
+        raw_sahiner_fw_data = pd.DataFrame.from_records(sahiner_fw_baselines)
+        raw_sahiner_cp_data = pd.DataFrame.from_records(sahiner_cp_baselines)
+        raw_sahiner_fw_data = raw_sahiner_fw_data.round(3)
+        raw_sahiner_fw_data['sahiner_fw_final_losses'] = raw_sahiner_fw_data['sahiner_fw_losses'].apply(lambda x: x[-1])
+        if 'sahiner_results' in baselines.keys():
+            sahiner_results = raw_sahiner_fw_data.filter(["Algorithm", "sahiner_fw_time", "obj_type",
+                                                             "sahiner_fw_final_losses"])
+            sahiner_results = sahiner_results.rename(columns={"sahiner_fw_final_losses": "Objective Value",
+                                                              "sahiner_fw_time": "Solution Time",
+                                                                        "obj_type": "Objective Type"})
+            raw_sahiner_cp_data = raw_sahiner_cp_data.rename(columns={"sahiner_copositive_loss": "Objective Value",
+                                                                      "sahiner_copositive_time": "Solution Time",
+                                                                      "obj_type": "Objective Type"})
+            sahiner_results = pd.concat([sahiner_results, raw_sahiner_cp_data])
+            sahiner_results = sahiner_results.round(3)
+            sahiner_results.to_csv(sahiner_result_file_name, index=False)
+        else:
+            sahiner_trials = raw_sahiner_fw_data.filter(["trial", "Algorithm", "sahiner_fw_time", "obj_type",
+                                                            "sahiner_fw_final_losses"])
+            grpby = sahiner_trials.groupby(['obj_type'])
+            a = grpby['sahiner_fw_final_losses'].mean().to_frame('Average Sahiner FW Loss')
+            b = grpby['sahiner_fw_final_losses'].std().to_frame('Std Deviation Sahiner FW Loss')
+            c = grpby.agg({'sahiner_fw_time': 'mean'})
+            c = a.join(b).join(c)
+            sahiner_trials = c.reset_index().rename(
+                columns={"sahiner_fw_time": "Mean Solution Time", "obj_type": "Objective Type"})
+            sahiner_trials = sahiner_trials.round(3)
+            sahiner_trials.to_csv(sahiner_result_file_name, index=False)
+
     # Plot the Objective Value of various approaches
     if 'cvx_results' in baselines.keys():
         for plot_num, obj_type in enumerate(cvx_results['Objective Type'].unique()):
@@ -146,12 +181,24 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                     legend_labels += ['SDP-NN']
                     k += 1
 
+            if 'Sahiner FW' in baselines_to_plot:
+                sahiner_fw = sahiner_results[sahiner_results["Algorithm"] == 'Sahiner FW']["Objective Value"]
+                plt.hlines(sahiner_fw, 0, num_sgd_epochs, color=clrs[k], linestyle='dashed')
+                legend_labels += ['Sahiner FW']
+                k += 1
+
+            if 'Sahiner Copositive Rel.' in baselines_to_plot:
+                sahiner_fw = sahiner_results[sahiner_results["Algorithm"] == 'Sahiner Copositive Rel.']["Objective Value"]
+                plt.hlines(sahiner_fw, 0, num_sgd_epochs, color=clrs[k], linestyle='dashed')
+                legend_labels += ['Sahiner Copositive Rel.']
+                k += 1
+
             if experiment == 'spiral':
                 plt.legend(legend_labels, ncol=2, loc='lower left')
                 _, top = plt.ylim()  # return the current ylim
                 bottom = 5
                 plt.ylim((bottom, top))  # set the ylim to bottom, top
-
+                
             plt.ylabel('Objective Loss')
             plt.xlabel('Iteration')
             plt.savefig(os.path.join(results_dir, experiment + '_objective_value.pdf'), format='pdf',
@@ -162,7 +209,7 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
         k = 0
         legend_handles = []  # To store plot handles for legend
         legend_labels = []  # To store corresponding labels
-
+        
         if 'SGD' in baselines_to_plot:
             num_sgd_epochs = baselines['num_sgd_epochs']
 
@@ -207,8 +254,21 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                 # legend_labels.append(f'{deg}-SOS Burer Rel. {solver}')
                 k += 1
 
-            _, top = plt.ylim()  # return the current ylim
+            if 'Sahiner FW' in baselines_to_plot:
+
+                # Get the mean and standard deviation
+                mean_sahiner_fw = sahiner_trials['Average Sahiner FW Loss'][0]
+                std_sahiner_fw = sahiner_trials['Std Deviation Sahiner FW Loss'][0]
+                line_sahiner = plt.hlines(mean_sahiner_fw, 1, num_sgd_epochs, color=clrs[k], linestyle='dashed')
+                plt.fill_betweenx([mean_sahiner_fw - std_sahiner_fw, mean_sahiner_fw + std_sahiner_fw],
+                                      1, num_sgd_epochs, color=clrs[k], alpha=0.3)
+                legend_handles.append(line_sahiner)
+                legend_labels += ['Sahiner FW']
+                k += 1
+
+            # _, top = plt.ylim()  # return the current ylim
             bottom = 1e-3
+            top = 1e4
             plt.ylim((bottom, top))  # set the ylim to bottom, top
             plt.legend(legend_handles, legend_labels, ncols=2, loc='lower left')
             plt.ylabel('Objective Loss')
@@ -219,13 +279,13 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
 
 
 def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
-                   deg_cp_relaxation, size_of_randomized_dataset, num_trials_randomized_exp, cvx_solver_type,
-                   results_dir, device, num_workers):
+                   deg_cp_relaxation, size_of_randomized_dataset, num_trials_randomized_exp, fw_epochs,
+                   sgd_results_file_path, cvx_solver_type, results_dir, device, num_workers):
     """
     Runs the baselines for a given choice of experiment. This is invoked by running with the flag --run_baselines
 
     @type experiment: str
-    @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere")
+    @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere", "pima_indians", "bank_notes", "mnist")
     @type run_type: str
     @param run_type: The type of run to do (e.g. "SGD" or "CVX")
     @type add_bias: str
@@ -242,6 +302,10 @@ def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd
     @param size_of_randomized_dataset: the size of the randomized dataset for the randomized experiment. Ignored for the other experiments.
     @type num_trials_randomized_exp: int
     @param num_trials_randomized_exp: Number of times to run the randomized experiment. Ignored for the other experiments.
+    @type fw_epochs: int
+    @param fw_epochs: the number of epochs to run Sahiner's FW algorithm.
+    @type sgd_results_file_path: str
+    @param sgd_results_file_path: the location of the SGD result file for initializing Sahiner's FW algorithm.
     @type deg_cp_relaxation: int
     @param deg_cp_relaxation: the degree of SoS relaxation for completely positive program.
     @type size_of_randomized_dataset: int
@@ -264,10 +328,12 @@ def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd
     if experiment == 'randomized':
         results = run_randomized_data_experiment(run_type, regularization_parameter, sgd_learning_rate,
                                                  sgd_num_epochs, deg_cp_relaxation, size_of_randomized_dataset,
-                                                 num_trials_randomized_exp, cvx_solver_type, device, num_workers)
+                                                 num_trials_randomized_exp, fw_epochs, sgd_results_file_path,
+                                                 cvx_solver_type, device, num_workers)
     elif experiment == 'spiral':
         results = run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
-                                             deg_cp_relaxation, cvx_solver_type, device, num_workers)
+                                             deg_cp_relaxation, fw_epochs, sgd_results_file_path, cvx_solver_type,
+                                             device, num_workers)
     elif experiment == 'iris':
         results = run_iris_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                            deg_cp_relaxation, cvx_solver_type, device, num_workers)
@@ -280,7 +346,9 @@ def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd
     elif experiment == 'bank_notes':
         results = run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                                  deg_cp_relaxation, cvx_solver_type, device, num_workers)
-
+    elif experiment == 'mnist':
+        results = run_mnist_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
+                                                 deg_cp_relaxation, cvx_solver_type, device, num_workers)
     else:
         raise ValueError('Invalid specifier for experiment type.')
 
@@ -303,13 +371,13 @@ if __name__ == '__main__':
         prog='SDP Relaxation for Infinite-Width NN Training',
         description='Solves the SDP Relaxation of the 2-layer Infinite-Width Neural Network Training Problem.')
 
-    parser.add_argument('--experiment', action='store', choices=['randomized', 'spiral', 'iris', 'ionosphere', 'bank_notes', 'pima_indians'],
+    parser.add_argument('--experiment', action='store', choices=['randomized', 'spiral', 'iris', 'ionosphere', 'bank_notes', 'pima_indians', 'mnist'],
                         help='Choice of experiment to run.', required=True)
     parser.add_argument('--run_experiment', action='store_true', default=False,
                         help='Flag whether to run the experiment or not.')
     parser.add_argument('--run_type', action='store', default='CVX', type=str,
-                        choices=['SGD', 'CVX'],
-                        help='The type of run to do (e.g. "SGD" or "CVX")')
+                        choices=['SGD', 'CVX', 'Sahiner'],
+                        help='The type of run to do (e.g. "SGD" or "CVX" for all runs or "Sahiner" for randomized/spiral runs)')
     parser.add_argument('--add_bias', action='store_true', default=False,
                         help='Flag whether to use bias in first layer for real-life datasets.')
     parser.add_argument('--plot_results', action='store_true', default=False,
@@ -317,7 +385,7 @@ if __name__ == '__main__':
     parser.add_argument('--results_dir', action='store', default='results',
                         help='Directory where the figures and csv files holding the results will be put.')
     parser.add_argument('--baselines_to_plot', type=str, nargs='*',
-                        help='Baselines to plot', choices=['SGD', 'CVX'],
+                        help='Baselines to plot', choices=['SGD', 'CVX', 'Sahiner FW', 'Sahiner Copositive Rel.'],
                         default=None)
     parser.add_argument('--regularization_parameter', action='store', default=0.1, type=float,
                         help='Regularization parameter for NN training.')
@@ -331,6 +399,10 @@ if __name__ == '__main__':
                         help='the size of the randomized dataset for the randomized experiment. Ignored for the other experiments.')
     parser.add_argument('--num_trials_randomized_exp', action='store', default=1, type=int,
                         help='Number of times to run the randomized experiment. Ignored for the other experiments.')
+    parser.add_argument('--fw_epochs', action='store', default=30000, type=int,
+                        help='Number of epochs to run Sahiner FW algorithm for (for randomized and spiral).')
+    parser.add_argument('--sgd_results_file_path', action='store', default=None,
+                        help='Location of SGD result file path for initialization of Sahiner FW algorithm.')
     parser.add_argument('--cvx_solver_type', action='store', default='SCS', type=str, choices=['MOSEK', 'SCS'],
                         help='The CVXPY solver to use ("MOSEK or "SCS") for degree 0 SoS relaxation (SCS will be used for higher-order relaxations)')
     parser.add_argument('--device', action='store', default='cpu', type=str,
@@ -341,10 +413,11 @@ if __name__ == '__main__':
 
     # If the user wants to run the baselines, run them or if they have not been run, run them and store them.
     if args.run_experiment:
-        baselines = run_experiment(args.experiment, args.run_type, args.add_bias, args.regularization_parameter, args.sgd_learning_rate,
-                                   args.sgd_num_epochs, args.deg_cp_relaxation,
-                                   args.size_of_randomized_dataset, args.num_trials_randomized_exp,
-                                   args.cvx_solver_type, args.results_dir, args.device, args.num_workers)
+        baselines = run_experiment(args.experiment, args.run_type, args.add_bias, args.regularization_parameter,
+                                   args.sgd_learning_rate, args.sgd_num_epochs, args.deg_cp_relaxation,
+                                   args.size_of_randomized_dataset, args.num_trials_randomized_exp, args.fw_epochs,
+                                   args.sgd_results_file_path, args.cvx_solver_type, args.results_dir, args.device,
+                                   args.num_workers)
 
     # If the user desires to plot the results, plot them.
     if args.plot_results:
@@ -356,6 +429,10 @@ if __name__ == '__main__':
             with open(os.path.join(args.results_dir, 'CVX_' + args.experiment + '_results.pkl'), 'rb') as handle:
                 cvx_baselines = pickle.load(handle)
             baselines.update(cvx_baselines)
+            if os.path.exists(os.path.join(args.results_dir, 'Sahiner_' + args.experiment + '_results.pkl')):
+                with open(os.path.join(args.results_dir, 'Sahiner_' + args.experiment + '_results.pkl'), 'rb') as handle:
+                    sahiner_baselines = pickle.load(handle)
+                baselines.update(sahiner_baselines)
         else:
             baselines = None
         plot_results(args.experiment, args.results_dir, baselines, args.cvx_solver_type, args.baselines_to_plot)

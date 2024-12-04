@@ -1,4 +1,5 @@
 import os
+import copy
 import pickle
 import torch
 import scipy
@@ -128,7 +129,7 @@ def run_nngp_and_ntk_prediction(dataset, reg):
             {'NNGP': threshold_nngp, 'NTK': threshold_ntk})
 
 
-def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv_dir):
+def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv_dir, bias_option):
     """
     Runs the rounding of the solution to the semidefinite relaxation of the completely positive reformulation of the
     infinite-width neural network.
@@ -144,6 +145,8 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
     @param reg: the value of the regularization parameter
     @type output_csv_dir: str
     @param output_csv_dir: the output directory to store the .pkl files and .csv files with prediction metrics
+    @type bias_option: bool
+    @param bias_option: whether to introduce bias or not
     @return: four dictionaries holding classification scores, sdp_test_accuracy, sdp_threshold and rounding_metrics with
     rounding metrics meaning the feasibility errors for ReLU constraint (Feas_M) and linear layer constraint (Feas_C).
     """
@@ -151,6 +154,15 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
     Y_train = dataset['train_dataset']['Y']
     X_test = dataset['test_dataset']['X']
     Y_test = dataset['test_dataset']['Y']
+
+    if bias_option:
+        old_dataset = copy.deepcopy(dataset)
+        num_rows_train = dataset['train_dataset']['X'].shape[0]
+        ones_column_train = np.ones((num_rows_train, 1))
+        X_train = np.hstack((ones_column_train, old_dataset['train_dataset']['X']))
+        num_rows_test = dataset['test_dataset']['X'].shape[0]
+        ones_column_test = np.ones((num_rows_test, 1))
+        X_test = np.hstack((ones_column_test, old_dataset['test_dataset']['X']))
 
     # Get the input dimension
     n = X_train.shape[0]
@@ -186,10 +198,17 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
     projection_matrix = null_space @ np.linalg.inv(null_space.T @ null_space) @ null_space.T
 
     for entry in data['cvx_results']:
-        alg = 'SDP-NN'
-        abbrv_alg = 'sdpnn-iw'
+        if bias_option:
+            alg = 'SDP-NN-bias'
+            abbrv_alg = 'sdpnn-iw-bias'
+        else:
+            alg = 'SDP-NN'
+            abbrv_alg = 'sdpnn-iw'
         Lambda_tilde = entry['cvx_soln']
-        max_iter = 1000  # 10000
+        if experiment == 'mnist':
+            max_iter = 10000
+        else:
+            max_iter = 1000
         R = 300  # np.linalg.matrix_rank(Lambda_tilde)
         U, S, Vt = np.linalg.svd(Lambda_tilde, full_matrices=False)
         U = U[:, 0:R]
@@ -197,7 +216,10 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
         Z = U @ np.diag(np.sqrt(S))
         if Z.shape[1] < 300:
             Z = np.pad(Z, ((0, 0), (0, 300 - Z.shape[1])), 'constant', constant_values=0)
-        gamma = 1 / np.linalg.norm(Lambda_tilde, 'fro')
+        if experiment == 'mnist':
+            gamma = 0.1 / np.linalg.norm(Lambda_tilde, 'fro')
+        else:
+            gamma = 0.75 / np.linalg.norm(Lambda_tilde, 'fro')
         test_accuracy_sdp_single_alg = 0
         best_preds = np.zeros_like(Y_test)
         best_sdp_threshold = 0
@@ -205,10 +227,10 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
         # Riemannian TOS iteration
         for k in range(max_iter):
             W = projection_P_C(Z, projection_matrix)
-            W_tensor = torch.tensor(W, device=device)
-            Lambda_tilde_tensor = torch.tensor(Lambda_tilde, device=device)
+            # W_tensor = torch.tensor(W, device=device)
+            # Lambda_tilde_tensor = torch.tensor(Lambda_tilde, device=device)
             V = projection_P_M(2 * W - Z - 2 * gamma * (
-                        W_tensor @ (W_tensor.T @ W_tensor) - Lambda_tilde_tensor @ W_tensor).cpu().numpy(), n)
+                        W @ (W.T @ W) - Lambda_tilde @ W), n)
             Z = Z - W + V
 
             # Calculate the objective
@@ -232,15 +254,16 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
                 best_preds = preds
                 best_sdp_threshold = threshold_sdp
 
-            tos_log_dict[k] = {
-                'Test Accuracy': round(test_accuracy, 3),
-                'Best Test Accuracy': round(test_accuracy_sdp_single_alg, 3),
-                'Lifted Obj': round(lifted_obj, 3),
-                'Rounding Obj': round(rounding_obj, 3),
-                'Feas Error C': round(C_feas_error, 3),
-                'Feas Error M': round(M_feas_error, 3),
-                'W': W
-            }
+            if k % 1000 == 0:
+                tos_log_dict[k] = {
+                    'Test Accuracy': round(test_accuracy, 3),
+                    'Best Test Accuracy': round(test_accuracy_sdp_single_alg, 3),
+                    'Lifted Obj': round(lifted_obj, 3),
+                    'Rounding Obj': round(rounding_obj, 3),
+                    'Feas Error C': round(C_feas_error, 3),
+                    'Feas Error M': round(M_feas_error, 3),
+                    'W': W
+                }
 
             print('Iteration:', k, 'Test Accuracy:', round(test_accuracy, 3), 'Best Test Accuracy:',
                   round(test_accuracy_sdp_single_alg, 3), 'Lifted Obj:', round(lifted_obj, 3),
@@ -374,11 +397,10 @@ def run_prediction(experiment, results_dirs, data_path, regs, output_csv_dir):
 
     @type experiment: str
     @param experiment: the short name of the experiment ("iris", "ionosphere", "pima_indians" or "bank_notes")
-    @type results_dir: str
-    @param results_dir: the location of the .pkl file where the SDP solution is stored
-    @type dataset: dict
-    @param dataset: a nested dictionary holding the dataset with keys ('train dataset' and 'test_dataset', each with keys
-    'X' and 'Y')
+    @type results_dirs: str
+    @param results_dirs: the location of the .pkl file where the SDP solution is stored
+    @type data_path: str
+    @param data_path: the path to the dataset for the experiment
     @type regs: list
     @param regs: the values of the regularization parameter to run
     @type output_csv_dir: str
@@ -392,10 +414,25 @@ def run_prediction(experiment, results_dirs, data_path, regs, output_csv_dir):
     with open(data_path, 'rb') as file:
         dataset = pickle.load(file)
 
-    # Runs the prediction
+    no_bias_results_dirs = results_dirs[0:2]
+    added_bias_results_dirs = results_dirs[2:4]
+
+    # Initialize dictionaries
     nngp_ntk_scores_reg = {}
     nngp_ntk_accuracies_reg = {}
     nngp_ntk_thresholds_reg = {}
+    rounded_sdp_scores_reg = {}
+    rounded_sdp_accuracies_reg = {}
+    rounded_sdp_thresholds_reg = {}
+    rounded_sdp_rounding_metrics_reg = {}
+    rounded_sdp_scores_reg_bias = {}
+    rounded_sdp_accuracies_reg_bias = {}
+    rounded_sdp_thresholds_reg_bias = {}
+    rounded_sdp_rounding_metrics_reg_bias = {}
+    sgd_scores_reg = {}
+    sgd_accuracies_reg = {}
+    sgd_thresholds_reg = {}
+
     # Run the NNGP and NTK based prediction for all values of the regularization parameter
     for reg in regs:
         nngp_ntk_scores, nngp_ntk_accuracies, nngp_ntk_thresholds = run_nngp_and_ntk_prediction(dataset, reg)
@@ -403,35 +440,39 @@ def run_prediction(experiment, results_dirs, data_path, regs, output_csv_dir):
         nngp_ntk_accuracies_reg[reg] = nngp_ntk_accuracies
         nngp_ntk_thresholds_reg[reg] = nngp_ntk_thresholds
 
-
-    rounded_sdp_scores_reg = {}
-    rounded_sdp_accuracies_reg = {}
-    rounded_sdp_thresholds_reg = {}
-    rounded_sdp_rounding_metrics_reg = {}
     # Run the rounded SDP prediction for all values of the regularization parameter
-    for results_dir, reg in zip(results_dirs, regs):
+    for results_dir, reg in zip(no_bias_results_dirs, regs):
         rounded_sdp_scores, rounded_sdp_accuracies, rounded_sdp_thresholds, rounding_metrics = run_sdp_rounded_prediction(
-            experiment, results_dir, dataset, reg, output_csv_dir)
+            experiment, results_dir, dataset, reg, output_csv_dir, bias_option=False)
         rounded_sdp_scores_reg[reg] = rounded_sdp_scores
         rounded_sdp_accuracies_reg[reg] = rounded_sdp_accuracies
         rounded_sdp_thresholds_reg[reg] = rounded_sdp_thresholds
         rounded_sdp_rounding_metrics_reg[reg] = rounding_metrics
 
-    sgd_scores_reg = {}
-    sgd_accuracies_reg = {}
-    sgd_thresholds_reg = {}
+    # Run the rounded SDP prediction for all values of the regularization parameter
+    for results_dir, reg in zip(added_bias_results_dirs, regs):
+        rounded_sdp_scores, rounded_sdp_accuracies, rounded_sdp_thresholds, rounding_metrics = run_sdp_rounded_prediction(
+            experiment, results_dir, dataset, reg, output_csv_dir, bias_option=True)
+        rounded_sdp_scores_reg_bias[reg] = rounded_sdp_scores
+        rounded_sdp_accuracies_reg_bias[reg] = rounded_sdp_accuracies
+        rounded_sdp_thresholds_reg_bias[reg] = rounded_sdp_thresholds
+        rounded_sdp_rounding_metrics_reg_bias[reg] = rounding_metrics
+
     # Run the SGD prediction for all values of the regularization parameter
-    for results_dir, reg in zip(results_dirs, regs):
+    for results_dir, reg in zip(no_bias_results_dirs, regs):
         sgd_scores, sgd_accuracies, sgd_thresholds = run_sgd_prediction(experiment, results_dir, dataset)
         sgd_scores_reg[reg] = sgd_scores
         sgd_accuracies_reg[reg] = sgd_accuracies
         sgd_thresholds_reg[reg] = sgd_thresholds
 
     for reg in regs:
+        rounded_sdp_scores_reg[reg].update(rounded_sdp_scores_reg_bias[reg])
         rounded_sdp_scores_reg[reg].update(nngp_ntk_scores_reg[reg])
         rounded_sdp_scores_reg[reg].update(sgd_scores_reg[reg])
+        rounded_sdp_accuracies_reg[reg].update(rounded_sdp_accuracies_reg_bias[reg])
         rounded_sdp_accuracies_reg[reg].update(nngp_ntk_accuracies_reg[reg])
         rounded_sdp_accuracies_reg[reg].update(sgd_accuracies_reg[reg])
+        rounded_sdp_thresholds_reg[reg].update(rounded_sdp_thresholds_reg_bias[reg])
         rounded_sdp_thresholds_reg[reg].update(nngp_ntk_thresholds_reg[reg])
         rounded_sdp_thresholds_reg[reg].update(sgd_thresholds_reg[reg])
 
@@ -440,16 +481,22 @@ def run_prediction(experiment, results_dirs, data_path, regs, output_csv_dir):
 
 if __name__ == '__main__':
     # General Parameters
+    top_results_dir = 'results'
     output_csv_dir = 'results'
-    experiments = ["iris", "ionosphere", "pima_indians", "bank_notes"]
-    experiments_dirs = ["iris_results", "ionosphere_results", "pima_indians_results", "bank_notes_results"]
-    data_files = ["iris.pkl", "ionosphere.pkl", "pima_indians.pkl", "bank_notes.pkl"]
+    no_bias_results_dir = 'no_bias_results'
+    added_bias_results_dir = 'added_bias_results'
+    experiments = ["mnist"] # ["iris", "ionosphere", "pima_indians", "bank_notes", "mnist"]
+    experiments_dirs = ["mnist_results"] # ["iris_results", "ionosphere_results", "pima_indians_results", "bank_notes_results", "mnist_results"]
+    data_files = ["mnist.pkl"] # ["iris.pkl", "ionosphere.pkl", "pima_indians.pkl", "bank_notes.pkl", "mnist.pkl"]
 
     # Loop over the experiments and do the prediction and combine them conveniently into Pandas dataframes
     for experiment, experiment_dir, data_file in zip(experiments, experiments_dirs, data_files):
         regs = [0.1, 0.01]
-        results_dirs = [os.path.join('results', 'reg_0.1', experiment_dir),
-                        os.path.join('results', 'reg_0.01', experiment_dir)]
+        results_dirs = [os.path.join(top_results_dir, no_bias_results_dir, 'reg_0.1', experiment_dir),
+                        os.path.join(top_results_dir, no_bias_results_dir, 'reg_0.01', experiment_dir),
+                        os.path.join(top_results_dir, added_bias_results_dir, 'reg_0.1', experiment_dir),
+                        os.path.join(top_results_dir, added_bias_results_dir, 'reg_0.01', experiment_dir)
+                        ]
         data_path = os.path.join('data', data_file)
         sdp_scores, sdp_accuracies, sdp_thresholds, rounding_metrics = run_prediction(experiment, results_dirs,
                                                                                       data_path, regs, output_csv_dir)
