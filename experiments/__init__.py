@@ -4,3 +4,4 @@ from experiments import iris
 from experiments import ionosphere
 from experiments import bank_notes
 from experiments import pima_indians
+from experiments import mnist
