@@ -145,10 +145,10 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 ############################################################################################################
 
 # Generates the MNIST dataset SGD results for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type SGD --sgd_num_epochs 8000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.1/mnist_results" --regularization_parameter 0.1 --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type SGD --sgd_num_epochs 8000000 --sgd_learning_rate 1e-7 --results_dir "results/reg_0.1/mnist_results" --regularization_parameter 0.1 --num_workers 5
 
 # Generates the MNIST dataset SGD results for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type SGD --sgd_num_epochs 8000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.01/mnist_results" --regularization_parameter 0.01 --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type SGD --sgd_num_epochs 8000000 --sgd_learning_rate 1e-7 --results_dir "results/reg_0.01/mnist_results" --regularization_parameter 0.01 --num_workers 5
 
 # Generates the MNIST dataset CVX results for gamma = 0.01
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type CVX --results_dir "results/reg_0.01/mnist_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --cvx_solver "SCS"
@@ -161,10 +161,10 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 ############################################################################################################
 
 # Generates the Cifar10 dataset SGD results for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type SGD --sgd_num_epochs 10000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.1/cifar10_results" --regularization_parameter 0.1 --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type SGD --sgd_num_epochs 10000000 --sgd_learning_rate 1e-7 --results_dir "results/reg_0.1/cifar10_results" --regularization_parameter 0.1 --num_workers 5
 
 # Generates the Cifar10 dataset SGD results for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type SGD --sgd_num_epochs 10000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.01/cifar10_results" --regularization_parameter 0.01 --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type SGD --sgd_num_epochs 10000000 --sgd_learning_rate 1e-7 --results_dir "results/reg_0.01/cifar10_results" --regularization_parameter 0.01 --num_workers 5
 
 # Generates the Cifar10 dataset CVX results for gamma = 0.01
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type CVX --results_dir "results/reg_0.01/cifar10_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --cvx_solver "SCS"

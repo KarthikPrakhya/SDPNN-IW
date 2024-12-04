@@ -50,7 +50,7 @@ def run_cvx(cvx_trial_permutation):
             'cvx_solver_type': solver, 'obj_type': obj_type}
 
 
-def run_cifar10_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-6, sgd_num_epochs=10000000,
+def run_cifar10_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-7, sgd_num_epochs=10000000,
                              deg_cp_relaxation=0, cvx_solver_type='SCS', device='cpu', num_workers=None):
     """
     The run_cifar10_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
