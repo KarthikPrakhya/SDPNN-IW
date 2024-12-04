@@ -95,10 +95,10 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
 
     """
     # Size parameters for the Possum dataset
-    num_hidden_neurons = [300]  # number of hidden neurons
+    num_hidden_neurons = [5, 10, 100, 200, 300]  # number of hidden neurons
     d = 12  # input dimension
     c = 1  # output dimension
-    n = 100  # number of datapoints
+    n = 104  # number of datapoints
 
     # Parameters for NN training
     beta = regularization_parameter
