@@ -441,9 +441,9 @@ def run_prediction(experiment, results_dirs, data_path, regs, output_csv_dir):
 if __name__ == '__main__':
     # General Parameters
     output_csv_dir = 'results'
-    experiments = ["iris", "ionosphere", "pima_indians", "bank_notes"]
-    experiments_dirs = ["iris_results", "ionosphere_results", "pima_indians_results", "bank_notes_results"]
-    data_files = ["iris.pkl", "ionosphere.pkl", "pima_indians.pkl", "bank_notes.pkl"]
+    experiments = ["iris", "ionosphere", "pima_indians", "bank_notes", "mnist", "cifar10"]
+    experiments_dirs = ["iris_results", "ionosphere_results", "pima_indians_results", "bank_notes_results", "mnist", "cifar10"]
+    data_files = ["iris.pkl", "ionosphere.pkl", "pima_indians.pkl", "bank_notes.pkl", "mnist.pkl", "cifar10.pkl"]
 
     # Loop over the experiments and do the prediction and combine them conveniently into Pandas dataframes
     for experiment, experiment_dir, data_file in zip(experiments, experiments_dirs, data_files):

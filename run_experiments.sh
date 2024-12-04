@@ -55,6 +55,28 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/reg_0.01/spiral_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX"
 
 ############################################################################################################
+# Possum Dataset Runs
+############################################################################################################
+
+# Generates the Possum dataset SGD results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type SGD --sgd_num_epochs 500000 --sgd_learning_rate 1e-5 --results_dir "results/reg_0.1/possum_results" --regularization_parameter 0.1 --num_workers 5
+
+# Generates the Possum dataset SGD results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type SGD --sgd_num_epochs 500000 --sgd_learning_rate 1e-5 --results_dir "results/reg_0.01/possum_results" --regularization_parameter 0.01 --num_workers 5
+
+# Generates the Possum dataset CVX results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type CVX --results_dir "results/reg_0.01/possum_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --cvx_solver "MOSEK"
+
+# Generates the Possum dataset CVX results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type CVX --results_dir "results/reg_0.1/possum_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --cvx_solver "MOSEK"
+
+# Generate a plot for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --results_dir "results/reg_0.1/possum_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX"
+
+# Generate a plot for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --results_dir "results/reg_0.01/possum_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX"
+
+############################################################################################################
 # Iris Dataset Runs
 ############################################################################################################
 
@@ -117,6 +139,38 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 
 # Generates the Bank Notes dataset CVX results for gamma = 0.1
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "bank_notes" --run_experiment --run_type CVX --results_dir "results/reg_0.1/bank_notes_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --cvx_solver "SCS"
+
+############################################################################################################
+# MNIST Dataset Runs
+############################################################################################################
+
+# Generates the MNIST dataset SGD results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type SGD --sgd_num_epochs 8000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.1/mnist_results" --regularization_parameter 0.1 --num_workers 5
+
+# Generates the MNIST dataset SGD results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type SGD --sgd_num_epochs 8000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.01/mnist_results" --regularization_parameter 0.01 --num_workers 5
+
+# Generates the MNIST dataset CVX results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type CVX --results_dir "results/reg_0.01/mnist_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --cvx_solver "SCS"
+
+# Generates the MNIST dataset CVX results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "mnist" --run_experiment --run_type CVX --results_dir "results/reg_0.1/mnist_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --cvx_solver "SCS"
+
+############################################################################################################
+# Cifar10 Dataset Runs
+############################################################################################################
+
+# Generates the Cifar10 dataset SGD results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type SGD --sgd_num_epochs 10000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.1/cifar10_results" --regularization_parameter 0.1 --num_workers 5
+
+# Generates the Cifar10 dataset SGD results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type SGD --sgd_num_epochs 10000000 --sgd_learning_rate 1e-6 --results_dir "results/reg_0.01/cifar10_results" --regularization_parameter 0.01 --num_workers 5
+
+# Generates the Cifar10 dataset CVX results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type CVX --results_dir "results/reg_0.01/cifar10_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --cvx_solver "SCS"
+
+# Generates the Cifar10 dataset CVX results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "cifar10" --run_experiment --run_type CVX --results_dir "results/reg_0.1/cifar10_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --cvx_solver "SCS"
 
 ############################################################################################################
 # Run the predictions
