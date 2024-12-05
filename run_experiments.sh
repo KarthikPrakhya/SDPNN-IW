@@ -24,13 +24,19 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --run_experiment --run_type CVX --results_dir "results/reg_0.01/randomized_multiple_trials_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --size_of_randomized_dataset 25 --num_trials_randomized_exp 100 --cvx_solver "MOSEK"
 
 # Generates the Randomized dataset CVX results for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --run_experiment --run_type CVX --results_dir "results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --size_of_randomized_dataset 25 --num_trials_randomized_exp 100 --cvx_solver "MOSEK" --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --run_experiment --run_type CVX --results_dir "results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --size_of_randomized_dataset 25 --num_trials_randomized_exp 100 --cvx_solver "MOSEK"
+
+# Generates the Randomized dataset Sahiner results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --run_experiment --run_type Sahiner --results_dir "results/reg_0.01/randomized_multiple_trials_results" --regularization_parameter 0.01 --size_of_randomized_dataset 25 --num_trials_randomized_exp 100 --fw_epochs 50000
+
+# Generates the Randomized dataset Sahiner results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --run_experiment --run_type Sahiner --results_dir "results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --size_of_randomized_dataset 25 --num_trials_randomized_exp 100 --fw_epochs 50000
 
 # Generate a plot for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX"
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW"
 
 # Generate a plot for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/reg_0.01/randomized_multiple_trials_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX"
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/reg_0.01/randomized_multiple_trials_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW"
 
 ############################################################################################################
 # Spiral Dataset Runs
@@ -48,11 +54,17 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 # Generates the Spiral dataset CVX results for gamma = 0.1
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --run_experiment --run_type CVX --results_dir "results/reg_0.1/spiral_results" --regularization_parameter 0.1 --deg_cp_relaxation 0 --cvx_solver "MOSEK"
 
+# Generates the Spiral dataset Sahiner results for gamma = 0.01
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --run_experiment --run_type Sahiner --results_dir "results/reg_0.01/spiral_results" --regularization_parameter 0.01 --fw_epochs 15000
+
+# Generates the Spiral dataset Sahiner results for gamma = 0.1
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --run_experiment --run_type Sahiner --results_dir "results/reg_0.1/spiral_results" --regularization_parameter 0.1 --fw_epochs 15000
+
 # Generate a plot for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/reg_0.1/spiral_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX"
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/reg_0.1/spiral_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW" "Sahiner Copositive Rel."
 
 # Generate a plot for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/reg_0.01/spiral_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX"
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/reg_0.01/spiral_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW" "Sahiner Copositive Rel."
 
 ############################################################################################################
 # Possum Dataset Runs
