@@ -343,7 +343,8 @@ def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd
                                                  deg_cp_relaxation, cvx_solver_type, device, num_workers)
     elif experiment == 'possum':
         results = run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
-                                                 deg_cp_relaxation, cvx_solver_type, device, num_workers)
+                                                 deg_cp_relaxation, fw_epochs, sgd_results_file_path, cvx_solver_type,
+                                                 device, num_workers)
     else:
         raise ValueError('Invalid specifier for experiment type.')
 

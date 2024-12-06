@@ -1,4 +1,5 @@
 import os
+import copy
 import torch
 import random
 import itertools
@@ -6,9 +7,9 @@ import numpy as np
 import pandas as pd
 import pickle as pkl
 import concurrent.futures
+from utils.data.label_encoding import one_hot
 from algorithms.cvx.cvx_solver import cvx_solver
 from algorithms.sgd.sgd_solver_pytorch import sgd_solver_pytorch
-from sklearn.model_selection import train_test_split
 
 
 def run_sgd(sgd_run_permutation):
@@ -50,7 +51,7 @@ def run_cvx(cvx_trial_permutation):
             'cvx_solver_type': solver, 'obj_type': obj_type}
 
 
-def run_mnist_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-7, sgd_num_epochs=8000000,
+def run_mnist_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate=1e-7, sgd_num_epochs=8000000,
                              deg_cp_relaxation=0, cvx_solver_type='SCS', device='cpu', num_workers=None):
     """
     The run_mnist_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
@@ -61,6 +62,8 @@ def run_mnist_data_experiment(run_type, regularization_parameter, sgd_learning_r
 
     @type run_type: str
     @param run_type: the type of run to do (e.g. "SGD" or "CVX")
+    @type add_bias: str
+    @param add_bias: whether or not to add bias term to the first layer
     @type regularization_parameter: float
     @param: regularization_parameter: the regularization parameter for NN training
     @type sgd_learning_rate: float
@@ -118,15 +121,15 @@ def run_mnist_data_experiment(run_type, regularization_parameter, sgd_learning_r
 
     # extract the last column as the labels
     labels_train = df_train.pop('labels')
-    labels_train = pd.get_dummies(labels_train)
-    X_train = df_train.to_numpy(dtype=float)
+    labels_train = pd.get_dummies(labels_train[1:,])
+    X_train = df_train.iloc[1:,].to_numpy(dtype=float)
     Y_train = labels_train.values
-    Y_train = one_hot(torch.Tensor(Y_train), nc).numpy()
     labels_test = df_test.pop('labels')
-    labels_test = pd.get_dummies(labels_test)
-    X_test = df_train.to_numpy(dtype=float)
+    labels_test = pd.get_dummies(labels_test[1:,])
+    X_test = df_test.iloc[1:,].to_numpy(dtype=float)
     Y_test = labels_test.values
-    Y_test = one_hot(torch.Tensor(Y_test), nc).numpy()
+    X_train = (X_train - X_train.mean()) / (X_train.std())
+    X_test = (X_test - X_train.mean()) / (X_test.std())
     train_dataset = {'X': X_train, 'Y': Y_train}
     test_dataset = {'X': X_test, 'Y': Y_test}
     dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}

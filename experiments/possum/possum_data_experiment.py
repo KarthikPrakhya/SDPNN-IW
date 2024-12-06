@@ -9,7 +9,8 @@ import pickle as pkl
 import concurrent.futures
 from algorithms.cvx.cvx_solver import cvx_solver
 from algorithms.sgd.sgd_solver_pytorch import sgd_solver_pytorch
-from sklearn.model_selection import train_test_split
+from algorithms.sahiner.train_sahiner_frank_wolfe_nn import train_sahiner_frank_wolfe_nn
+from algorithms.sahiner.sign_patterns import generate_sign_patterns
 
 
 def run_sgd(sgd_run_permutation):
@@ -51,8 +52,34 @@ def run_cvx(cvx_trial_permutation):
             'cvx_solver_type': solver, 'obj_type': obj_type}
 
 
-def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-6, sgd_num_epochs=2000000,
-                             deg_cp_relaxation=0, cvx_solver_type='SCS', device='cpu', num_workers=None):
+def run_sahiner(sahiner_trial_permutation):
+    trial = sahiner_trial_permutation[0][0]
+    dataset = sahiner_trial_permutation[0][1]
+    beta = sahiner_trial_permutation[1]
+    fw_epochs = sahiner_trial_permutation[2]
+    obj_type = sahiner_trial_permutation[3]
+    model = sahiner_trial_permutation[4]
+
+    # Calculate the Frank-Wolfe solution (Algorithm 1) of the convex semi-infinite dual formulation (Eq. 15) in
+    # Sahiner et al. paper
+    sign_pattern_list, u_vector_list = generate_sign_patterns(dataset['X'], 100000, verbose=True)
+    sign_patterns_int_array = np.array(sign_pattern_list).astype(np.int32)
+    t = 0
+    for layer, p in enumerate(model.parameters()):
+        t += torch.norm(p) ** 2 / 2
+    t = t.cpu().item()
+    losses_sahiner_fw, times_sahiner_fw = train_sahiner_frank_wolfe_nn(dataset['X'], dataset['Y'],
+                                                                       np.expand_dims(sign_patterns_int_array, 2),
+                                                                       beta, t, epochs=fw_epochs, use_cvxpy=False,
+                                                                       print_freq=200,
+                                                                       return_times=True)
+
+    return {'Algorithm': 'Sahiner FW', 'trial': trial, 'sahiner_fw_losses': losses_sahiner_fw,
+            'sahiner_fw_time': times_sahiner_fw[-1] - times_sahiner_fw[0], 'obj_type': obj_type}
+
+
+def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-7, sgd_num_epochs=2000000,
+                             deg_cp_relaxation=0, fw_epochs=30000, sgd_results_file_path=None, cvx_solver_type='SCS', device='cpu', num_workers=None):
     """
     The run_possum_data_experiment function runs MOSEK solution of our semidefinite relaxation of our lifted
     formulation of the infinite-width neural network (NN) training problem for the Possum dataset. As baseline approaches,
@@ -62,7 +89,7 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
     of the mountain brushtail possum, Trichosurus caninus Ogilby (Phalangeridae: Marsupiala). Australian Journal of Zoology 43: 449-458..
 
     @type run_type: str
-    @param run_type: the type of run to do (e.g. "SGD" or "CVX")
+    @param run_type: the type of run to do (e.g. "SGD" or "CVX" or "Sahiner")
     @type regularization_parameter: float
     @param: regularization_parameter: the regularization parameter for NN training
     @type sgd_learning_rate: float
@@ -71,6 +98,8 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
     @param sgd_num_epochs: the number of epochs to run SGD for.
     @type deg_cp_relaxation: int
     @param deg_cp_relaxation: the degree of SoS relaxation for completely positive program.
+    @type sgd_results_file_path: str
+    @param sgd_results_file_path: the location of the SGD result file for initializing Sahiner's FW algorithm.
     @type cvx_solver_type: str
     @param cvx_solver_type: the CVXPY solver to use ("MOSEK or "SCS") for degree 0 relaxation (SCS will be used for higher-order relaxations)
     @type device: str
@@ -98,14 +127,14 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
     num_hidden_neurons = [5, 10, 100, 200, 300]  # number of hidden neurons
     d = 12  # input dimension
     c = 1  # output dimension
-    n = 104  # number of datapoints
+    n = 101  # number of datapoints
 
     # Parameters for NN training
     beta = regularization_parameter
     batch_size = n
     learning_rate = sgd_learning_rate
     num_sgd_epochs = sgd_num_epochs
-    num_sgd_runs = 5
+    num_sgd_runs = 1
 
     # General parameters
     obj_types = ['L2']
@@ -115,11 +144,14 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
                      names=['case','site','Pop','sex','age','hdlngth','skullw','totlngth','taill','footlgth','earconch','eye','chest','belly'],
                      header=None)
     # extract the last column as the labels
-    data = data.drop(columns=data.columns[0])
-    Y = data['totlngth'].values  # Convert to a numpy array
+    data = df.drop(columns=df.columns[0])
+    Y = data['totlngth'].iloc[1:,].to_numpy(dtype=float)[:, np.newaxis]  # Convert to a numpy array
     data = data.drop(columns=['totlngth'])
-    data = pd.get_dummies(data, columns=['Pop', 'sex'], drop_first=True)
-    X = data.values  # Convert DataFrame to a numpy matrix
+    data = pd.get_dummies(data, columns=['Pop', 'sex'], drop_first=False)
+    X = data.iloc[1:,].to_numpy(dtype=float)
+    bad_indices = np.ma.fix_invalid(X).mask.any(axis=1)
+    X = X[~bad_indices]
+    Y = Y[~bad_indices]
     dataset = {'X': X, 'Y': Y}
     dataset_path = os.path.join('data', 'possum.pkl')
 
@@ -131,7 +163,7 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
     if run_type == 'SGD':
         num_workers_sgd_cases = num_workers if num_workers else len(num_hidden_neurons)
         runs = range(0, num_sgd_runs)
-        sgd_trial_permutations = itertools.product([train_dataset], runs, num_hidden_neurons, [beta], [batch_size],
+        sgd_trial_permutations = itertools.product([dataset], runs, num_hidden_neurons, [beta], [batch_size],
                                                    [learning_rate], [device], [num_sgd_epochs], obj_types)
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers_sgd_cases) as executor:
             sgd_results = list(executor.map(run_sgd, sgd_trial_permutations))
@@ -140,7 +172,7 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
 
     # Generate CVX solution for the Possum dataset
     if run_type == 'CVX':
-        cvx_trial_permutations = itertools.product([train_dataset], deg_cp_relaxation, [beta],
+        cvx_trial_permutations = itertools.product([dataset], deg_cp_relaxation, [beta],
                                                    [cvx_solver_type], obj_types)
         cvx_results = []
         for cvx_trial_permutation in cvx_trial_permutations:
@@ -148,5 +180,34 @@ def run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_
             cvx_results.append(result)
 
         baselines = {'cvx_results': cvx_results}
+
+    # Generate the Sahiner solution for the Spiral dataset
+    if run_type == 'Sahiner':
+        sahiner_results = []
+        if sgd_results_file_path:
+            with open(sgd_results_file_path, 'rb') as f:
+                sgd_results = pkl.load(f)
+
+            first_models = {}
+            for entry in sgd_results['sgd_results']:
+                run_number = entry['run_number']
+                m = entry['m']
+                if run_number == 1 and m == 300:
+                    model = entry['sgd_model']
+            models = [model]
+        else:
+            models = []
+            sgd_learning_rate = 1e-7
+            num_sgd_epochs = 2000000
+            for obj_type in obj_types:
+                _, _, model = sgd_solver_pytorch(dataset['X'], dataset['Y'], 1000, beta, num_sgd_epochs,
+                                                               batch_size, sgd_learning_rate, obj_type, device)
+                models.append(model)
+        sahiner_trial_permutations = itertools.product([dataset], [beta], [fw_epochs], obj_types, models)
+        for sahiner_trial_permutation in sahiner_trial_permutations:
+            result = run_sahiner(sahiner_trial_permutation)
+            sahiner_results += result
+
+        baselines = {'sahiner_results': sahiner_results}
 
     return baselines

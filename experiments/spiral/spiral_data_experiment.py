@@ -5,7 +5,6 @@ import random
 import itertools
 import numpy as np
 import concurrent.futures
-from models.FCNetwork import FCNetwork
 from utils.data.label_encoding import one_hot
 from utils.data.datagen_spiral import datagen_spiral
 from algorithms.cvx.cvx_solver import cvx_solver
@@ -106,6 +105,10 @@ def run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_
     @param sgd_learning_rate: the SGD learning rate.
     @type sgd_num_epochs: int
     @param sgd_num_epochs: the number of epochs to run SGD for.
+    @param deg_cp_relaxation: the degree of SoS relaxation for completely positive program.
+    @type size_of_randomized_dataset: int
+    @type fw_epochs: int
+    @param fw_epochs: the number of epochs to run Sahiner's FW algorithm.
     @type sgd_results_file_path: str
     @param sgd_results_file_path: the location of the SGD result file for initializing Sahiner's FW algorithm.
     @type cvx_solver_type: str
@@ -197,7 +200,13 @@ def run_spiral_data_experiment(run_type, regularization_parameter, sgd_learning_
                     model = entry['sgd_model']
             models = [model]
         else:
-            raise ValueError('For Sahiner, SGD is used to initialize FW algorithm. Specify --sgd_results_file_path arg.')
+            models = []
+            sgd_learning_rate = 1e-2
+            num_sgd_epochs = 8000
+            for obj_type in obj_types:
+                _, _, model = sgd_solver_pytorch(dataset['X'], dataset['Y'], 1000, beta, num_sgd_epochs,
+                                                               batch_size, sgd_learning_rate, obj_type, device)
+                models.append(model)
         sahiner_trial_permutations = itertools.product([dataset], [beta], [fw_epochs], obj_types, models)
         for sahiner_trial_permutation in sahiner_trial_permutations:
             result = run_sahiner(sahiner_trial_permutation)

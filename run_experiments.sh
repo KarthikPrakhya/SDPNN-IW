@@ -71,10 +71,10 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 ############################################################################################################
 
 # Generates the Possum dataset SGD results for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type SGD --sgd_num_epochs 500000 --sgd_learning_rate 1e-5 --results_dir "results/reg_0.1/possum_results" --regularization_parameter 0.1 --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type SGD --sgd_num_epochs 500000 --sgd_learning_rate 1e-7 --results_dir "results/reg_0.1/possum_results" --regularization_parameter 0.1 --num_workers 5
 
 # Generates the Possum dataset SGD results for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type SGD --sgd_num_epochs 500000 --sgd_learning_rate 1e-5 --results_dir "results/reg_0.01/possum_results" --regularization_parameter 0.01 --num_workers 5
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type SGD --sgd_num_epochs 500000 --sgd_learning_rate 1e-7 --results_dir "results/reg_0.01/possum_results" --regularization_parameter 0.01 --num_workers 5
 
 # Generates the Possum dataset CVX results for gamma = 0.01
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "possum" --run_experiment --run_type CVX --results_dir "results/reg_0.01/possum_results" --regularization_parameter 0.01 --deg_cp_relaxation 0 --cvx_solver "MOSEK"

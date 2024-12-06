@@ -81,7 +81,7 @@ def run_sahiner(sahiner_trial_permutation):
             'sahiner_fw_time': times_sahiner_fw[-1] - times_sahiner_fw[0], 'obj_type': obj_type}
 
 
-def run_randomized_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-4, sgd_num_epochs=20000,
+def run_randomized_data_experiment(run_type, regularization_parameter, sgd_learning_rate=1e-5, sgd_num_epochs=500000,
                                    deg_cp_relaxation=1, size_of_randomized_dataset=25,
                                    num_trials_randomized_exp=10, fw_epochs=50000, sgd_results_file_path=None,
                                    cvx_solver_type='MOSEK', device='cpu', num_workers=None):
@@ -209,7 +209,13 @@ def run_randomized_data_experiment(run_type, regularization_parameter, sgd_learn
                     first_models[trial] = entry['sgd_model']
             models = [value for key, value in sorted(first_models.items())]
         else:
-            raise ValueError('For Sahiner, SGD is used to initialize FW algorithm. Specify --sgd_results_file_path arg.')
+            models = []
+            sgd_learning_rate = 1e-5
+            num_sgd_epochs = 500000
+            for dataset in datasets:
+                _, _, model = sgd_solver_pytorch(dataset['X'], dataset['Y'], 1000, beta, num_sgd_epochs,
+                                                               batch_size, sgd_learning_rate, obj_types[0], device)
+                models.append(model)
         sahiner_trial_permutations = itertools.product(dataset_trials, [beta], [fw_epochs], obj_types, models)
         for sahiner_trial_permutation in sahiner_trial_permutations:
             result = run_sahiner(sahiner_trial_permutation)
