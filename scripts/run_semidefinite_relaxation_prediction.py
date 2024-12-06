@@ -232,15 +232,16 @@ def run_sdp_rounded_prediction(experiment, results_dir, dataset, reg, output_csv
                 best_preds = preds
                 best_sdp_threshold = threshold_sdp
 
-            tos_log_dict[k] = {
-                'Test Accuracy': round(test_accuracy, 3),
-                'Best Test Accuracy': round(test_accuracy_sdp_single_alg, 3),
-                'Lifted Obj': round(lifted_obj, 3),
-                'Rounding Obj': round(rounding_obj, 3),
-                'Feas Error C': round(C_feas_error, 3),
-                'Feas Error M': round(M_feas_error, 3),
-                'W': W
-            }
+            if k % 1000 == 0:
+                tos_log_dict[k] = {
+                    'Test Accuracy': round(test_accuracy, 3),
+                    'Best Test Accuracy': round(test_accuracy_sdp_single_alg, 3),
+                    'Lifted Obj': round(lifted_obj, 3),
+                    'Rounding Obj': round(rounding_obj, 3),
+                    'Feas Error C': round(C_feas_error, 3),
+                    'Feas Error M': round(M_feas_error, 3),
+                    'W': W
+                }
 
             print('Iteration:', k, 'Test Accuracy:', round(test_accuracy, 3), 'Best Test Accuracy:',
                   round(test_accuracy_sdp_single_alg, 3), 'Lifted Obj:', round(lifted_obj, 3),
