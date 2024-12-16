@@ -58,10 +58,10 @@ def run_cvx(cvx_trial_permutation):
 def run_sahiner(sahiner_trial_permutation):
     trial = sahiner_trial_permutation[0][0]
     dataset = sahiner_trial_permutation[0][1]
+    model = sahiner_trial_permutation[0][2]
     beta = sahiner_trial_permutation[1]
     fw_epochs = sahiner_trial_permutation[2]
     obj_type = sahiner_trial_permutation[3]
-    model = sahiner_trial_permutation[4]
 
     # Calculate the Frank-Wolfe solution (Algorithm 1) of the convex semi-infinite dual formulation (Eq. 15) in
     # Sahiner et al. paper
@@ -216,7 +216,8 @@ def run_randomized_data_experiment(run_type, regularization_parameter, sgd_learn
                 _, _, model = sgd_solver_pytorch(dataset['X'], dataset['Y'], 1000, beta, num_sgd_epochs,
                                                                batch_size, sgd_learning_rate, obj_types[0], device)
                 models.append(model)
-        sahiner_trial_permutations = itertools.product(dataset_trials, [beta], [fw_epochs], obj_types, models)
+        dataset_trials_models = zip(dataset_trials, models)
+        sahiner_trial_permutations = itertools.product(dataset_trials_models, [beta], [fw_epochs], obj_types)
         for sahiner_trial_permutation in sahiner_trial_permutations:
             result = run_sahiner(sahiner_trial_permutation)
             sahiner_trials.append(result)

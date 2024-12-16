@@ -53,8 +53,7 @@ def run_cvx(cvx_trial_permutation):
 
 
 def run_sahiner(sahiner_trial_permutation):
-    trial = sahiner_trial_permutation[0][0]
-    dataset = sahiner_trial_permutation[0][1]
+    dataset = sahiner_trial_permutation[0]
     beta = sahiner_trial_permutation[1]
     fw_epochs = sahiner_trial_permutation[2]
     obj_type = sahiner_trial_permutation[3]
