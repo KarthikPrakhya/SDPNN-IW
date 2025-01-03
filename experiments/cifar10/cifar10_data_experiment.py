@@ -99,7 +99,7 @@ def run_cifar10_data_experiment(run_type, add_bias, regularization_parameter, sg
     num_hidden_neurons = [300]  # number of hidden neurons
     d = 20  # input dimension
     c = 10  # output dimension
-    n = 3500  # number of datapoints
+    n = 1500  # number of datapoints
 
     # Parameters for NN training
     beta = regularization_parameter

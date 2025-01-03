@@ -10,9 +10,9 @@ def downsample_cifar10_with_pca(save_train_path, save_test_path, n_components=20
     (X_train_full, y_train_full), (X_test_full, y_test_full) = cifar10.load_data()
     y_train_full, y_test_full = y_train_full.flatten(), y_test_full.flatten()
 
-    # Create a medium class imbalance for training (e.g., 300-400 per class)
+    # Create a medium class imbalance for training (e.g., 125-175 per class)
     np.random.seed(42)
-    class_distribution = [400, 400, 350, 350, 300, 300, 400, 350, 350, 300]  # Medium imbalance
+    class_distribution = [150, 175, 150, 150, 125, 125, 175, 150, 150, 150]  # Medium imbalance
     train_downsampled = []
     for label, n_samples in enumerate(class_distribution):
         class_indices = np.where(y_train_full == label)[0]
@@ -21,11 +21,11 @@ def downsample_cifar10_with_pca(save_train_path, save_test_path, n_components=20
     X_train_downsampled = np.vstack([x[0] for x in train_downsampled])
     y_train_downsampled = np.hstack([x[1] for x in train_downsampled])
 
-    # Downsample test set to ~350 samples per class
+    # Downsample test set to ~150 samples per class
     test_downsampled = []
     for label in range(10):
         class_indices = np.where(y_test_full == label)[0]
-        selected_indices = np.random.choice(class_indices, size=350, replace=False)
+        selected_indices = np.random.choice(class_indices, size=150, replace=False)
         test_downsampled.append((X_test_full[selected_indices], y_test_full[selected_indices]))
     X_test_downsampled = np.vstack([x[0] for x in test_downsampled])
     y_test_downsampled = np.hstack([x[1] for x in test_downsampled])
