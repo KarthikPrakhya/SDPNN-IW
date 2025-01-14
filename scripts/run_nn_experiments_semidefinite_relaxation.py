@@ -200,7 +200,13 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                 _, top = plt.ylim()  # return the current ylim
                 bottom = 5
                 plt.ylim((bottom, top))  # set the ylim to bottom, top
-
+                
+            if experiment == 'possum':
+                plt.legend(legend_labels, ncol=2, loc='lower left')
+                _, top = plt.ylim()  # return the current ylim
+                bottom = 1e-4
+                plt.ylim((bottom, top))  # set the ylim to bottom, top
+            
             plt.ylabel('Objective Loss')
             plt.xlabel('Iteration')
             plt.savefig(os.path.join(results_dir, experiment + '_objective_value.pdf'), format='pdf',
@@ -211,7 +217,7 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
         k = 0
         legend_handles = []  # To store plot handles for legend
         legend_labels = []  # To store corresponding labels
-
+        
         if 'SGD' in baselines_to_plot:
             num_sgd_epochs = baselines['num_sgd_epochs']
 
@@ -256,8 +262,21 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                 # legend_labels.append(f'{deg}-SOS Burer Rel. {solver}')
                 k += 1
 
-            _, top = plt.ylim()  # return the current ylim
-            bottom = 1e-3
+            if 'Sahiner FW' in baselines_to_plot:
+
+                # Get the mean and standard deviation
+                mean_sahiner_fw = sahiner_trials['Average Sahiner FW Loss'][0]
+                std_sahiner_fw = sahiner_trials['Std Deviation Sahiner FW Loss'][0]
+                line_sahiner = plt.hlines(mean_sahiner_fw, 1, num_sgd_epochs, color=clrs[k], linestyle='dashed')
+                plt.fill_betweenx([mean_sahiner_fw - std_sahiner_fw, mean_sahiner_fw + std_sahiner_fw],
+                                      1, num_sgd_epochs, color=clrs[k], alpha=0.3)
+                legend_handles.append(line_sahiner)
+                legend_labels += ['Sahiner FW']
+                k += 1
+
+            # _, top = plt.ylim()  # return the current ylim
+            bottom = 5e-2
+            top = 1e2
             plt.ylim((bottom, top))  # set the ylim to bottom, top
             plt.legend(legend_handles, legend_labels, ncols=2, loc='lower left')
             plt.ylabel('Objective Loss')
@@ -425,6 +444,10 @@ if __name__ == '__main__':
             with open(os.path.join(args.results_dir, 'CVX_' + args.experiment + '_results.pkl'), 'rb') as handle:
                 cvx_baselines = pickle.load(handle)
             baselines.update(cvx_baselines)
+            if os.path.exists(os.path.join(args.results_dir, 'Sahiner_' + args.experiment + '_results.pkl')):
+                with open(os.path.join(args.results_dir, 'Sahiner_' + args.experiment + '_results.pkl'), 'rb') as handle:
+                    sahiner_baselines = pickle.load(handle)
+                baselines.update(sahiner_baselines)
         else:
             baselines = None
         plot_results(args.experiment, args.results_dir, baselines, args.cvx_solver_type, args.baselines_to_plot)
