@@ -15,8 +15,6 @@ from experiments.ionosphere.ionosphere_data_experiment import run_ionosphere_dat
 from experiments.bank_notes.bank_notes_data_experiment import run_bank_notes_data_experiment
 from experiments.pima_indians.pima_indians_data_experiment import run_pima_indians_data_experiment
 from experiments.mnist.mnist_data_experiment import run_mnist_data_experiment
-from experiments.cifar10.cifar10_data_experiment import run_cifar10_data_experiment
-from experiments.possum.possum_data_experiment import run_possum_data_experiment
 
 np.random.seed(100)
 torch.manual_seed(100)
@@ -30,7 +28,7 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
     approaches. It also generates a CSV file with all the final loss values and solution times for various approaches.
 
     @type experiment: str
-    @param experiment: the experiment to run ("randomized", "spiral", "possum")
+    @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere", "pima_indians", "bank_notes")
     @type: str
     @param results_dir: the directory where the figures and csv files holding the results will be put.
     @type: dict
@@ -201,12 +199,6 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                 bottom = 5
                 plt.ylim((bottom, top))  # set the ylim to bottom, top
                 
-            if experiment == 'possum':
-                plt.legend(legend_labels, ncol=2, loc='lower left')
-                _, top = plt.ylim()  # return the current ylim
-                bottom = 1e-4
-                plt.ylim((bottom, top))  # set the ylim to bottom, top
-            
             plt.ylabel('Objective Loss')
             plt.xlabel('Iteration')
             plt.savefig(os.path.join(results_dir, experiment + '_objective_value.pdf'), format='pdf',
@@ -293,7 +285,7 @@ def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd
     Runs the baselines for a given choice of experiment. This is invoked by running with the flag --run_baselines
 
     @type experiment: str
-    @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere", "pima_indians", "bank_notes", "mnist", "cifar10", "possum")
+    @param experiment: the experiment to run ("randomized", "spiral", "iris", "ionosphere", "pima_indians", "bank_notes", "mnist")
     @type run_type: str
     @param run_type: The type of run to do (e.g. "SGD" or "CVX")
     @type add_bias: str
@@ -357,13 +349,6 @@ def run_experiment(experiment, run_type, add_bias, regularization_parameter, sgd
     elif experiment == 'mnist':
         results = run_mnist_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
                                                  deg_cp_relaxation, cvx_solver_type, device, num_workers)
-    elif experiment == 'cifar10':
-        results = run_cifar10_data_experiment(run_type, add_bias, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
-                                                 deg_cp_relaxation, cvx_solver_type, device, num_workers)
-    elif experiment == 'possum':
-        results = run_possum_data_experiment(run_type, regularization_parameter, sgd_learning_rate, sgd_num_epochs,
-                                                 deg_cp_relaxation, fw_epochs, sgd_results_file_path, cvx_solver_type,
-                                                 device, num_workers)
     else:
         raise ValueError('Invalid specifier for experiment type.')
 
@@ -386,7 +371,7 @@ if __name__ == '__main__':
         prog='SDP Relaxation for Infinite-Width NN Training',
         description='Solves the SDP Relaxation of the 2-layer Infinite-Width Neural Network Training Problem.')
 
-    parser.add_argument('--experiment', action='store', choices=['randomized', 'spiral', 'iris', 'ionosphere', 'bank_notes', 'pima_indians', 'mnist', 'cifar10', 'possum'],
+    parser.add_argument('--experiment', action='store', choices=['randomized', 'spiral', 'iris', 'ionosphere', 'bank_notes', 'pima_indians', 'mnist'],
                         help='Choice of experiment to run.', required=True)
     parser.add_argument('--run_experiment', action='store_true', default=False,
                         help='Flag whether to run the experiment or not.')

@@ -21,12 +21,11 @@ To run the experiments for the paper, run the following command:\
     sh run_experiments.sh
 </code>
 
-There are nine experiments ("randomized", "spiral", "possum", "iris", "ionosphere", "pima_indians", "bank_notes", "mnist",
-"cifar10"). The directory `results` will be created with subdirectories `reg_0.1` and `reg_0.01`. Within each subdirectory, 
+There are seven experiments ("randomized", "spiral", "iris", "ionosphere", "pima_indians", "bank_notes", "mnist"). The directory `results` will be created with subdirectories `reg_0.1` and `reg_0.01`. Within each subdirectory, 
 a subdirectory `{experiment}_results` will be created with a csv file holding the run times and loss values for various 
-approaches as well as a figure with the objective loss vs. iteration curves for "randomized", "spiral" and "possum" experiments 
+approaches as well as a figure with the objective loss vs. iteration curves for "randomized" and "spiral" experiments 
 and csv files with prediction performance metrics for the rest of the experiments. To run the prediction experiments with bias
-added in the first layer, rerun the experiments for "iris", "ionosphere", "pima_indians", "bank_notes", "mnist" and "cifar10"
+added in the first layer, rerun the experiments for "iris", "ionosphere", "pima_indians", "bank_notes" and "mnist"
 with the flag "--add_bias". Please see our paper for more details:
 
 Prakhya, Karthik, Tolga Birdal, and Alp Yurtsever. "Convex Formulations for Training Two-Layer ReLU Neural Networks." arXiv preprint 
