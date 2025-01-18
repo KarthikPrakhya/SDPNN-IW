@@ -126,6 +126,10 @@ def run_ionosphere_data_experiment(run_type, add_bias, regularization_parameter,
     test_dataset = {'X': X_test, 'Y': Y_test}
     dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
     dataset_path = os.path.join('data', 'ionosphere.pkl')
+    
+    # Save the train and test datasets
+    with open(dataset_path, 'wb') as handle:
+        pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
     # Add the bias term
     if add_bias:
@@ -139,11 +143,6 @@ def run_ionosphere_data_experiment(run_type, add_bias, regularization_parameter,
         train_dataset = {'X': X_train, 'Y': old_dataset['train_dataset']['Y']}
         test_dataset = {'X': X_test, 'Y': old_dataset['test_dataset']['Y']}
         dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
-        dataset_path = os.path.join('data', 'ionosphere_added_bias.pkl')
-
-    # Save the train and test datasets
-    with open(dataset_path, 'wb') as handle:
-        pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
     
     # Generate the SGD solution for the Ionosphere dataset
     if run_type == 'SGD':

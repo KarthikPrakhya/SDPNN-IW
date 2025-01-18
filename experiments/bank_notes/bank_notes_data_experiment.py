@@ -124,6 +124,10 @@ def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter,
     dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
     dataset_path = os.path.join('data', 'bank_notes.pkl')
     
+    # Save the train and test datasets
+    with open(dataset_path, 'wb') as handle:
+        pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
+    
     # Add the bias term
     if add_bias:
         old_dataset = copy.deepcopy(dataset)
@@ -136,11 +140,6 @@ def run_bank_notes_data_experiment(run_type, add_bias, regularization_parameter,
         train_dataset = {'X': X_train, 'Y': old_dataset['train_dataset']['Y']}
         test_dataset = {'X': X_test, 'Y': old_dataset['test_dataset']['Y']}
         dataset = {'train_dataset': train_dataset, 'test_dataset': test_dataset}
-        dataset_path = os.path.join('data', 'bank_notes_added_bias.pkl')
-
-    # Save the train and test datasets
-    with open(dataset_path, 'wb') as handle:
-        pkl.dump(dataset, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
     # Generate the SGD solution for the Bank Notes dataset
     if run_type == 'SGD':
