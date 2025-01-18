@@ -34,10 +34,10 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --run_experiment --run_type Sahiner --results_dir "results/no_bias_results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --size_of_randomized_dataset 25 --num_trials_randomized_exp 100 --fw_epochs 50000
 
 # Generate a plot for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/no_bias_results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW"
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/no_bias_results/reg_0.1/randomized_multiple_trials_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX"
 
 # Generate a plot for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/no_bias_results/reg_0.01/randomized_multiple_trials_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW"
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "randomized" --results_dir "results/no_bias_results/reg_0.01/randomized_multiple_trials_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX"
 
 ############################################################################################################
 # Spiral Dataset Runs
@@ -62,10 +62,10 @@ python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experimen
 python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --run_experiment --run_type Sahiner --results_dir "results/no_bias_results/reg_0.1/spiral_results" --regularization_parameter 0.1 --fw_epochs 15000
 
 # Generate a plot for gamma = 0.1
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/no_bias_results/reg_0.1/spiral_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW" "Sahiner Copositive Rel."
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/no_bias_results/reg_0.1/spiral_results" --regularization_parameter 0.1 --plot_results --baselines_to_plot "SGD" "CVX"
 
 # Generate a plot for gamma = 0.01
-python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/no_bias_results/reg_0.01/spiral_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX" "Sahiner FW" "Sahiner Copositive Rel."
+python3 -u $SCRIPT_LOC/run_nn_experiments_semidefinite_relaxation.py --experiment "spiral" --results_dir "results/no_bias_results/reg_0.01/spiral_results" --regularization_parameter 0.01 --plot_results --baselines_to_plot "SGD" "CVX"
 
 ############################################################################################################
 # Iris Dataset Runs

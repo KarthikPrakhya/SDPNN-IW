@@ -267,8 +267,8 @@ def plot_results(experiment, results_dir, baselines, cvx_solver_type, baselines_
                 k += 1
 
             # _, top = plt.ylim()  # return the current ylim
-            bottom = 5e-2
-            top = 1e2
+            bottom = 1e-3
+            top = 1e4
             plt.ylim((bottom, top))  # set the ylim to bottom, top
             plt.legend(legend_handles, legend_labels, ncols=2, loc='lower left')
             plt.ylabel('Objective Loss')
